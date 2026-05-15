@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy::pbr::wireframe::WireframeConfig;
+use bevy::window::{CursorGrabMode, CursorOptions};
 
 pub fn spawn_text(mut commands: Commands) {
     commands
@@ -10,9 +11,7 @@ pub fn spawn_text(mut commands: Commands) {
             ..default()
         })
         .with_child(Text::new(concat!(
-            "Move the camera with your mouse.\n",
-            "Press arrow up to decrease the FOV of the world model.\n",
-            "Press arrow down to increase the FOV of the world model."
+            "Test"
         )));
 }
 
@@ -25,3 +24,20 @@ pub fn toggle_wireframe(
     }
 }
 
+// This system grabs the mouse when the left mouse button is pressed
+// and releases it when the escape key is pressed
+pub fn grab_mouse(
+    mut cursor_options: Single<&mut CursorOptions>,
+    mouse: Res<ButtonInput<MouseButton>>,
+    key: Res<ButtonInput<KeyCode>>,
+) {
+    if mouse.just_pressed(MouseButton::Left) {
+        cursor_options.visible = false;
+        cursor_options.grab_mode = CursorGrabMode::Locked;
+    }
+
+    if key.just_pressed(KeyCode::Escape) {
+        cursor_options.visible = true;
+        cursor_options.grab_mode = CursorGrabMode::None;
+    }
+}

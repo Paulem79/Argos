@@ -66,6 +66,8 @@ pub fn spawn_view_model(
 
 pub fn move_player(
     accumulated_mouse_motion: Res<AccumulatedMouseMotion>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    time: Res<Time>,
     player: Single<(&mut Transform, &CameraSensitivity), With<Player>>,
 ) {
     let (mut transform, camera_sensitivity) = player.into_inner();
@@ -83,5 +85,39 @@ pub fn move_player(
 
         transform.rotation = Quat::from_euler(EulerRot::YXZ, yaw, pitch, roll);
     }
-}
 
+    let mut forward = *transform.forward();
+    forward.y = 0.0;
+    let forward = forward.normalize_or_zero();
+
+    let mut right = *transform.right();
+    right.y = 0.0;
+    let right = right.normalize_or_zero();
+
+    let mut movement = Vec3::ZERO;
+
+    if keyboard_input.pressed(KeyCode::KeyW) {
+        movement += forward;
+    }
+    if keyboard_input.pressed(KeyCode::KeyS) {
+        movement -= forward;
+    }
+    if keyboard_input.pressed(KeyCode::KeyD) {
+        movement += right;
+    }
+    if keyboard_input.pressed(KeyCode::KeyA) {
+        movement -= right;
+    }
+    if keyboard_input.pressed(KeyCode::KeyQ) {
+        movement.y += 1.0;
+    }
+    if keyboard_input.pressed(KeyCode::KeyE) {
+        movement.y -= 1.0;
+    }
+
+    if movement.length_squared() > 0.0 {
+        movement = movement.normalize();
+        let speed = 5.0; // Player move speed
+        transform.translation += movement * speed * time.delta_secs();
+    }
+}

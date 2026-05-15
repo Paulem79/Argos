@@ -11,7 +11,8 @@ mod ui;
 use camera::change_fov;
 use player::{move_player, spawn_view_model};
 use scene::setup;
-use ui::{spawn_text, toggle_wireframe};
+use ui::{spawn_text, toggle_wireframe, grab_mouse};
+
 fn main() {
     App::new()
         .add_plugins((
@@ -48,6 +49,6 @@ fn main() {
             },
         ))
         .add_systems(Startup, (setup, spawn_view_model, spawn_text))
-        .add_systems(Update, (toggle_wireframe, move_player, change_fov))
+        .add_systems(Update, (toggle_wireframe, move_player, change_fov, grab_mouse))
         .run();
 }
