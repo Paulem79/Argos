@@ -5,6 +5,7 @@ use bevy::input::mouse::AccumulatedMouseMotion;
 use bevy::light::NotShadowCaster;
 use bevy::prelude::*;
 use std::f32::consts::FRAC_PI_2;
+use avian3d::prelude::*;
 
 #[derive(Debug, Component)]
 pub struct Player;
@@ -31,6 +32,9 @@ pub fn spawn_view_model(
         CameraSensitivity::default(),
         Transform::from_xyz(0.0, 1.0, 14.0),
         Visibility::default(),
+        RigidBody::Dynamic,
+        Collider::capsule(0.3, 1.0),
+        LockedAxes::ROTATION_LOCKED,
         children![
             (
                 WorldModelCamera,
@@ -66,10 +70,9 @@ pub fn spawn_view_model(
 pub fn move_player(
     accumulated_mouse_motion: Res<AccumulatedMouseMotion>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    time: Res<Time>,
-    player: Single<(&mut Transform, &CameraSensitivity), With<Player>>,
+    player: Single<(&mut Transform, &mut LinearVelocity, &CameraSensitivity), With<Player>>,
 ) {
-    let (mut transform, camera_sensitivity) = player.into_inner();
+    let (mut transform, mut linear_velocity, camera_sensitivity) = player.into_inner();
     let delta = accumulated_mouse_motion.delta;
 
     if delta != Vec2::ZERO {
@@ -107,16 +110,19 @@ pub fn move_player(
     if keyboard_input.pressed(KeyCode::KeyA) {
         movement -= right;
     }
-    if keyboard_input.pressed(KeyCode::KeyQ) {
-        movement.y += 1.0;
-    }
-    if keyboard_input.pressed(KeyCode::KeyE) {
-        movement.y -= 1.0;
-    }
 
     if movement.length_squared() > 0.0 {
         movement = movement.normalize();
-        let speed = 5.0; // Player move speed
-        transform.translation += movement * speed * time.delta_secs();
+    }
+
+    let speed = 5.0; // Player move speed
+    linear_velocity.x = movement.x * speed;
+    linear_velocity.z = movement.z * speed;
+
+    if keyboard_input.just_pressed(KeyCode::Space) {
+        // Collide with the ground
+        if linear_velocity.y.abs() < 0.01 {
+            linear_velocity.y = 5.0;
+        }
     }
 }
