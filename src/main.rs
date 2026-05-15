@@ -1,8 +1,13 @@
 use std::f32::consts::PI;
+use std::f32::consts::FRAC_PI_2;
 
 use bevy::pbr::wireframe::{WireframeConfig, WireframePlugin};
 use bevy::{
+    camera::visibility::RenderLayers,
+    color::palettes::tailwind,
     dev_tools::fps_overlay::{FpsOverlayConfig, FpsOverlayPlugin, FrameTimeGraphConfig},
+    input::mouse::AccumulatedMouseMotion,
+    light::NotShadowCaster,
     asset::RenderAssetUsages,
     color::palettes::basic::SILVER,
     prelude::*,
@@ -10,20 +15,35 @@ use bevy::{
 };
 use bevy::window::{PresentMode, WindowTheme};
 
+#[derive(Debug, Component)]
+struct Player;
+
+#[derive(Debug, Component, Deref, DerefMut)]
+struct CameraSensitivity(Vec2);
+
+impl Default for CameraSensitivity {
+    fn default() -> Self {
+        Self(Vec2::new(0.003, 0.002))
+    }
+}
+
+#[derive(Debug, Component)]
+struct WorldModelCamera;
+
+const DEFAULT_RENDER_LAYER: usize = 0;
+const VIEW_MODEL_RENDER_LAYER: usize = 1;
+
 fn main() {
     App::new()
         .add_plugins((
             DefaultPlugins.set(WindowPlugin {
                 primary_window: Some(Window {
-                    title: "I am a window!".into(),
+                    title: "Argos".into(),
                     name: Some("bevy.app".into()),
-                    resolution: (500, 300).into(),
+                    resolution: default(),
                     present_mode: PresentMode::Immediate,
                     window_theme: Some(WindowTheme::Dark),
-                    enabled_buttons: bevy::window::EnabledButtons {
-                        maximize: false,
-                        ..Default::default()
-                    },
+                    enabled_buttons: default(),
                     // This will spawn an invisible window
                     // The window will be made visible in the make_visible() system after 3 frames.
                     // This is useful when you want to avoid the white window that shows up before the GPU is ready to render the app.
@@ -57,8 +77,8 @@ fn main() {
                 },
             },
         ))
-        .add_systems(Startup, setup)
-        .add_systems(Update, toggle_wireframe)
+        .add_systems(Startup, (setup, spawn_view_model, spawn_text))
+        .add_systems(Update, (toggle_wireframe, move_player, change_fov))
         .run();
 }
 
@@ -98,18 +118,13 @@ fn setup(
             ..default()
         },
         Transform::from_xyz(8.0, 16.0, 8.0),
+        RenderLayers::from_layers(&[DEFAULT_RENDER_LAYER, VIEW_MODEL_RENDER_LAYER]),
     ));
 
     // ground plane
     commands.spawn((
         Mesh3d(meshes.add(Plane3d::default().mesh().size(50.0, 50.0).subdivisions(10))),
         MeshMaterial3d(materials.add(Color::from(SILVER))),
-    ));
-
-    // camera
-    commands.spawn((
-        Camera3d::default(),
-        Transform::from_xyz(0.0, 7., 14.0).looking_at(Vec3::new(0., 1., 0.), Vec3::Y),
     ));
 
     commands.spawn((
@@ -120,6 +135,105 @@ fn setup(
             ..default()
         },
     ));
+}
+
+fn spawn_view_model(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    let arm = meshes.add(Cuboid::new(0.1, 0.1, 0.5));
+    let arm_material = materials.add(Color::from(tailwind::TEAL_200));
+
+    commands.spawn((
+        Player,
+        CameraSensitivity::default(),
+        Transform::from_xyz(0.0, 1.0, 14.0),
+        Visibility::default(),
+        children![
+            (
+                WorldModelCamera,
+                Camera3d::default(),
+                Projection::from(PerspectiveProjection {
+                    fov: 90.0_f32.to_radians(),
+                    ..default()
+                }),
+            ),
+            (
+                Camera3d::default(),
+                Camera {
+                    order: 1,
+                    ..default()
+                },
+                Projection::from(PerspectiveProjection {
+                    fov: 70.0_f32.to_radians(),
+                    ..default()
+                }),
+                RenderLayers::layer(VIEW_MODEL_RENDER_LAYER),
+            ),
+            (
+                Mesh3d(arm),
+                MeshMaterial3d(arm_material),
+                Transform::from_xyz(0.2, -0.1, -0.25),
+                RenderLayers::layer(VIEW_MODEL_RENDER_LAYER),
+                NotShadowCaster,
+            ),
+        ],
+    ));
+}
+
+fn spawn_text(mut commands: Commands) {
+    commands
+        .spawn(Node {
+            position_type: PositionType::Absolute,
+            bottom: px(12),
+            left: px(12),
+            ..default()
+        })
+        .with_child(Text::new(concat!(
+            "Move the camera with your mouse.\n",
+            "Press arrow up to decrease the FOV of the world model.\n",
+            "Press arrow down to increase the FOV of the world model."
+        )));
+}
+
+fn move_player(
+    accumulated_mouse_motion: Res<AccumulatedMouseMotion>,
+    player: Single<(&mut Transform, &CameraSensitivity), With<Player>>,
+) {
+    let (mut transform, camera_sensitivity) = player.into_inner();
+    let delta = accumulated_mouse_motion.delta;
+
+    if delta != Vec2::ZERO {
+        let delta_yaw = -delta.x * camera_sensitivity.x;
+        let delta_pitch = -delta.y * camera_sensitivity.y;
+
+        let (yaw, pitch, roll) = transform.rotation.to_euler(EulerRot::YXZ);
+        let yaw = yaw + delta_yaw;
+
+        const PITCH_LIMIT: f32 = FRAC_PI_2 - 0.01;
+        let pitch = (pitch + delta_pitch).clamp(-PITCH_LIMIT, PITCH_LIMIT);
+
+        transform.rotation = Quat::from_euler(EulerRot::YXZ, yaw, pitch, roll);
+    }
+}
+
+fn change_fov(
+    input: Res<ButtonInput<KeyCode>>,
+    mut world_model_projection: Single<&mut Projection, With<WorldModelCamera>>,
+) {
+    let Projection::Perspective(perspective) = world_model_projection.as_mut() else {
+        return;
+    };
+
+    if input.pressed(KeyCode::ArrowUp) {
+        perspective.fov -= 1.0_f32.to_radians();
+        perspective.fov = perspective.fov.max(20.0_f32.to_radians());
+    }
+    if input.pressed(KeyCode::ArrowDown) {
+        perspective.fov += 1.0_f32.to_radians();
+        perspective.fov = perspective.fov.min(160.0_f32.to_radians());
+    }
 }
 
 /// Creates a colorful test pattern
