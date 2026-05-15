@@ -1,18 +1,64 @@
 use std::f32::consts::PI;
 
+use bevy::pbr::wireframe::{WireframeConfig, WireframePlugin};
 use bevy::{
+    dev_tools::fps_overlay::{FpsOverlayConfig, FpsOverlayPlugin, FrameTimeGraphConfig},
     asset::RenderAssetUsages,
     color::palettes::basic::SILVER,
     prelude::*,
     render::render_resource::{Extent3d, TextureDimension, TextureFormat},
 };
+use bevy::window::{PresentMode, WindowTheme};
 
 fn main() {
     App::new()
         .add_plugins((
-            DefaultPlugins.set(ImagePlugin::default_nearest()),
+            DefaultPlugins.set(WindowPlugin {
+                primary_window: Some(Window {
+                    title: "I am a window!".into(),
+                    name: Some("bevy.app".into()),
+                    resolution: (500, 300).into(),
+                    present_mode: PresentMode::Immediate,
+                    window_theme: Some(WindowTheme::Dark),
+                    enabled_buttons: bevy::window::EnabledButtons {
+                        maximize: false,
+                        ..Default::default()
+                    },
+                    // This will spawn an invisible window
+                    // The window will be made visible in the make_visible() system after 3 frames.
+                    // This is useful when you want to avoid the white window that shows up before the GPU is ready to render the app.
+                    visible: true,
+                    ..default()
+                }),
+                ..default()
+            }),
+            WireframePlugin::default(),
+            FpsOverlayPlugin {
+                config: FpsOverlayConfig {
+                    text_config: TextFont {
+                        // Here we define size of our overlay
+                        font_size: 42.0,
+                        // If we want, we can use a custom font
+                        font: default(),
+                        ..default()
+                    },
+                    // We can also change color of the overlay
+                    text_color: Color::srgb(0.0, 1.0, 0.0),
+                    // We can also set the refresh interval for the FPS counter
+                    refresh_interval: core::time::Duration::from_millis(100),
+                    enabled: true,
+                    frame_time_graph_config: FrameTimeGraphConfig {
+                        enabled: true,
+                        // The minimum acceptable fps
+                        min_fps: 30.0,
+                        // The target fps
+                        target_fps: 180.0,
+                    },
+                },
+            },
         ))
         .add_systems(Startup, setup)
+        .add_systems(Update, toggle_wireframe)
         .run();
 }
 
@@ -103,4 +149,13 @@ fn uv_debug_texture() -> Image {
         TextureFormat::Rgba8UnormSrgb,
         RenderAssetUsages::RENDER_WORLD,
     )
+}
+
+fn toggle_wireframe(
+    mut wireframe_config: ResMut<WireframeConfig>,
+    keyboard: Res<ButtonInput<KeyCode>>,
+) {
+    if keyboard.just_pressed(KeyCode::Space) {
+        wireframe_config.global = !wireframe_config.global;
+    }
 }
