@@ -1,11 +1,10 @@
-use std::f32::consts::FRAC_PI_2;
-use bevy::prelude::*;
-use bevy::input::mouse::AccumulatedMouseMotion;
-use bevy::color::palettes::tailwind;
-use bevy::camera::visibility::RenderLayers;
-use bevy::light::NotShadowCaster;
-
 use crate::camera::{WorldModelCamera, VIEW_MODEL_RENDER_LAYER};
+use bevy::camera::visibility::RenderLayers;
+use bevy::color::palettes::tailwind;
+use bevy::input::mouse::AccumulatedMouseMotion;
+use bevy::light::NotShadowCaster;
+use bevy::prelude::*;
+use std::f32::consts::FRAC_PI_2;
 
 #[derive(Debug, Component)]
 pub struct Player;

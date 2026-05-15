@@ -4,6 +4,7 @@ use bevy::{
     prelude::*,
 };
 use bevy::window::{PresentMode, WindowTheme};
+use avian3d::prelude::*;
 mod camera;
 mod player;
 mod scene;
@@ -29,6 +30,7 @@ fn main() {
                 }),
                 ..default()
             }),
+            PhysicsPlugins::default(),
             WireframePlugin::default(),
             FpsOverlayPlugin {
                 config: FpsOverlayConfig {

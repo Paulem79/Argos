@@ -1,4 +1,5 @@
 use std::f32::consts::PI;
+use avian3d::prelude::{Collider, ColliderConstructor, RigidBody};
 use bevy::prelude::*;
 use bevy::color::palettes::basic::SILVER;
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
@@ -23,6 +24,8 @@ pub fn setup(
 
     let shape = meshes.add(Extrusion::new(RegularPolygon::default(), 1.));
     commands.spawn((
+        RigidBody::Dynamic,
+        ColliderConstructor::TrimeshFromMesh,
         Mesh3d(shape),
         MeshMaterial3d(debug_material.clone()),
         Transform::from_xyz(
@@ -47,7 +50,9 @@ pub fn setup(
 
     // ground plane
     commands.spawn((
-        Mesh3d(meshes.add(Plane3d::default().mesh().size(50.0, 50.0).subdivisions(10))),
+        RigidBody::Static,
+        Collider::cuboid(50.0, 0.1, 50.0),
+        Mesh3d(meshes.add(Plane3d::default().mesh().size(50.0, 50.0))),
         MeshMaterial3d(materials.add(Color::from(SILVER))),
     ));
 
