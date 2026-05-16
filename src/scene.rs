@@ -22,19 +22,21 @@ pub fn setup(
         ..default()
     });
 
-    let shape = meshes.add(Extrusion::new(RegularPolygon::default(), 1.));
-    commands.spawn((
-        RigidBody::Dynamic,
-        ColliderConstructor::TrimeshFromMesh,
-        Mesh3d(shape),
-        MeshMaterial3d(debug_material.clone()),
-        Transform::from_xyz(
-            0f32,
-            2.0,
-            0f32,
-        ).with_rotation(Quat::from_rotation_x(-PI / 2.)),
-        Shape,
-    ));
+    for x in 0..100 {
+        for z in 0..100 {
+            commands.spawn((
+                RigidBody::Static,
+                Collider::cuboid(1.0, 1.0, 1.0),
+                Mesh3d(meshes.add(Cuboid::new(1.0, 1.0, 1.0).mesh())),
+                MeshMaterial3d(debug_material.clone()),
+                Transform::from_xyz(
+                    x as f32,
+                    0.0,
+                    z as f32,
+                ),
+            ));
+        }
+    }
 
     commands.spawn((
         PointLight {
@@ -46,14 +48,6 @@ pub fn setup(
         },
         Transform::from_xyz(8.0, 16.0, 8.0),
         RenderLayers::from_layers(&[DEFAULT_RENDER_LAYER, VIEW_MODEL_RENDER_LAYER]),
-    ));
-
-    // ground plane
-    commands.spawn((
-        RigidBody::Static,
-        Collider::cuboid(50.0, 0.1, 50.0),
-        Mesh3d(meshes.add(Plane3d::default().mesh().size(50.0, 50.0))),
-        MeshMaterial3d(materials.add(Color::from(SILVER))),
     ));
 
     commands.spawn((

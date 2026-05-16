@@ -1,4 +1,4 @@
-use crate::camera::{WorldModelCamera, VIEW_MODEL_RENDER_LAYER};
+use crate::camera::{WorldModelCamera, DEFAULT_RENDER_LAYER, VIEW_MODEL_RENDER_LAYER};
 use bevy::camera::visibility::RenderLayers;
 use bevy::color::palettes::tailwind;
 use bevy::input::mouse::AccumulatedMouseMotion;
@@ -9,6 +9,9 @@ use avian3d::prelude::*;
 
 #[derive(Debug, Component)]
 pub struct Player;
+
+#[derive(Debug, Component)]
+pub struct PlayerHead;
 
 #[derive(Debug, Component, Deref, DerefMut)]
 pub struct CameraSensitivity(pub Vec2);
@@ -35,57 +38,65 @@ pub fn spawn_view_model(
         RigidBody::Dynamic,
         Collider::capsule(0.3, 1.0),
         LockedAxes::ROTATION_LOCKED,
-        children![
-            (
+    )).with_children(|parent| {
+        parent.spawn((
+            PlayerHead,
+            Transform::default(),
+            Visibility::default(),
+        )).with_children(|head| {
+            head.spawn((
                 WorldModelCamera,
                 Camera3d::default(),
                 Projection::from(PerspectiveProjection {
-                    fov: 90.0_f32.to_radians(),
+                    fov: 90f32.to_radians(),
                     ..default()
                 }),
-            ),
-            (
+            ));
+            head.spawn((
                 Camera3d::default(),
                 Camera {
                     order: 1,
                     ..default()
                 },
                 Projection::from(PerspectiveProjection {
-                    fov: 70.0_f32.to_radians(),
+                    fov: 70f32.to_radians(),
                     ..default()
                 }),
                 RenderLayers::layer(VIEW_MODEL_RENDER_LAYER),
-            ),
-            (
+            ));
+            head.spawn((
                 Mesh3d(arm),
                 MeshMaterial3d(arm_material),
                 Transform::from_xyz(0.2, -0.1, -0.25),
                 RenderLayers::layer(VIEW_MODEL_RENDER_LAYER),
                 NotShadowCaster,
-            ),
-        ],
-    ));
+            ));
+        });
+    });
 }
 
 pub fn move_player(
     accumulated_mouse_motion: Res<AccumulatedMouseMotion>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
     player: Single<(&mut Transform, &mut LinearVelocity, &CameraSensitivity), With<Player>>,
+    head: Single<&mut Transform, (With<PlayerHead>, Without<Player>)>,
 ) {
     let (mut transform, mut linear_velocity, camera_sensitivity) = player.into_inner();
+    let mut head_transform = head.into_inner();
     let delta = accumulated_mouse_motion.delta;
 
     if delta != Vec2::ZERO {
         let delta_yaw = -delta.x * camera_sensitivity.x;
         let delta_pitch = -delta.y * camera_sensitivity.y;
 
-        let (yaw, pitch, roll) = transform.rotation.to_euler(EulerRot::YXZ);
-        let yaw = yaw + delta_yaw;
+        let (yaw, _pitch, _roll) = transform.rotation.to_euler(EulerRot::YXZ);
+        transform.rotation = Quat::from_euler(EulerRot::YXZ, yaw + delta_yaw, 0.0, 0.0);
 
+        let (_yaw, head_pitch, _roll) = head_transform.rotation.to_euler(EulerRot::YXZ);
         const PITCH_LIMIT: f32 = FRAC_PI_2 - 0.01;
-        let pitch = (pitch + delta_pitch).clamp(-PITCH_LIMIT, PITCH_LIMIT);
+        let new_pitch = (head_pitch + delta_pitch).clamp(-PITCH_LIMIT, PITCH_LIMIT);
 
-        transform.rotation = Quat::from_euler(EulerRot::YXZ, yaw, pitch, roll);
+        head_transform.rotation = Quat::from_euler(EulerRot::YXZ, 0.0, new_pitch, 0.0);
     }
 
     let mut forward = *transform.forward();
