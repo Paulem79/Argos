@@ -30,7 +30,7 @@ fn main() {
                     ..default()
                 }),
                 ..default()
-            }),
+            }).set(ImagePlugin::default_nearest()),
             PhysicsPlugins::default(),
             WireframePlugin::default(),
             FpsOverlayPlugin {
