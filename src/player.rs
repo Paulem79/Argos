@@ -126,7 +126,7 @@ pub fn move_player(
         movement = movement.normalize();
     }
 
-    let speed = 5.0; // Player move speed
+    let speed = 50.0; // Player move speed
     linear_velocity.x = movement.x * speed;
     linear_velocity.z = movement.z * speed;
 

@@ -9,7 +9,6 @@ mod camera;
 mod player;
 mod scene;
 mod ui;
-mod perlin;
 
 use crate::camera::change_fov;
 use crate::player::{move_player, spawn_view_model};
