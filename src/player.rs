@@ -33,7 +33,7 @@ pub fn spawn_view_model(
     commands.spawn((
         Player,
         CameraSensitivity::default(),
-        Transform::from_xyz(0.0, 1.0, 14.0),
+        Transform::from_xyz(0.0, 100.0, 14.0),
         Visibility::default(),
         RigidBody::Dynamic,
         Collider::capsule(0.3, 1.0),
@@ -41,7 +41,7 @@ pub fn spawn_view_model(
     )).with_children(|parent| {
         parent.spawn((
             PlayerHead,
-            Transform::default(),
+            Transform::from_xyz(0.0, 0.6, 0.0),
             Visibility::default(),
         )).with_children(|head| {
             head.spawn((

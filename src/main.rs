@@ -9,10 +9,12 @@ mod camera;
 mod player;
 mod scene;
 mod ui;
-use camera::change_fov;
-use player::{move_player, spawn_view_model};
-use scene::setup;
-use ui::{spawn_text, toggle_wireframe, grab_mouse};
+mod perlin;
+
+use crate::camera::change_fov;
+use crate::player::{move_player, spawn_view_model};
+use crate::scene::setup;
+use crate::ui::{spawn_text, toggle_wireframe, grab_mouse};
 
 fn main() {
     App::new()

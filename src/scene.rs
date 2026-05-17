@@ -1,15 +1,11 @@
-use std::f32::consts::PI;
-use avian3d::prelude::{Collider, ColliderConstructor, RigidBody};
-use bevy::prelude::*;
-use bevy::color::palettes::basic::SILVER;
-use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
+use avian3d::prelude::{Collider, RigidBody};
 use bevy::asset::RenderAssetUsages;
 use bevy::camera::visibility::RenderLayers;
-
+use bevy::prelude::*;
+use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
+use rand::random;
 use crate::camera::{DEFAULT_RENDER_LAYER, VIEW_MODEL_RENDER_LAYER};
-
-#[derive(Component)]
-pub struct Shape;
+use crate::perlin::{TerrainGenerator};
 
 pub fn setup(
     mut commands: Commands,
@@ -17,6 +13,9 @@ pub fn setup(
     mut images: ResMut<Assets<Image>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
+    let seed = random::<u32>();
+    let generator = TerrainGenerator::new(seed, 0.0, 10.0);
+
     let debug_material = materials.add(StandardMaterial {
         base_color_texture: Some(images.add(uv_debug_texture())),
         ..default()
@@ -24,6 +23,7 @@ pub fn setup(
 
     for x in 0..100 {
         for z in 0..100 {
+            let height = generator.get_perlin(x as f64 * 0.05, z as f64 * 0.05).round() as f32;
             commands.spawn((
                 RigidBody::Static,
                 Collider::cuboid(1.0, 1.0, 1.0),
@@ -31,7 +31,7 @@ pub fn setup(
                 MeshMaterial3d(debug_material.clone()),
                 Transform::from_xyz(
                     x as f32,
-                    0.0,
+                    height,
                     z as f32,
                 ),
             ));
